@@ -1,5 +1,3 @@
-import createStatementData from "./createStatementData";
-
 function statement(invoice, plays) {
   return renderPlainText(createStatementData(invoice, plays));
 }
