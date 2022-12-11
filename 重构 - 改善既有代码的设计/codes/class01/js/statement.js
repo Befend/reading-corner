@@ -1,3 +1,4 @@
+import createStatementData from "./createStatementData.js";
 function statement(invoice, plays) {
   return renderPlainText(createStatementData(invoice, plays));
 }
@@ -38,4 +39,9 @@ function usd(aNumber) {
     currency: "USD",
     minimumFractionDigits: 2,
   }).format(aNumber / 100);
+}
+
+export  {
+  statement,
+  htmlStatement
 }

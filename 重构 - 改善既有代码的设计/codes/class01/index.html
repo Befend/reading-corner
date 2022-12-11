@@ -5,15 +5,19 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>class01</title>
-  <script src="js/createStatementData.js"></script>
-  <script src="js/statement.js"></script>
+  <!-- <script src="js/createStatementData.js"></script> -->
+  <!-- <script type="module" src="js/statement.js"></script> -->
   <script src="js/invoices.js"></script>
   <script src="js/play.js"></script>
 </head>
 <body>
-  <script>
+  <div id="box"></div>
+  <script type="module">
+    import { statement, htmlStatement } from './js/statement.js';
     const result = statement(invoices, plays);
     console.log(result);
+    const html = htmlStatement(invoices, plays);
+    document.getElementById('box').innerHTML = html;
   </script>
 </body>
 </html>
