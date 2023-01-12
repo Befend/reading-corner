@@ -222,7 +222,7 @@ function calculateOutstanding(invoice) {
 + 删除该函数的定义
 
 ### 范例
-> 提炼前：
+> 内联前：
 ```js
 // example.01
 function rating(aDriver) {
@@ -248,7 +248,7 @@ function gatherCustomerData(out, aCustomer) {
 }
 ```
 
-> 提炼后：
+> 内联后：
 ```js
 // example.01
 function rating(aDriver) {
@@ -266,3 +266,88 @@ function reportLines(aCustomer) {
 }
 ```
 **重构的重点在于始终小步前进**
+
+## 6.3 提炼变量（Extract Variable）
+曾用名：引入解释性变量（Introduce Explaining Variable）
+反向重构：内联变量
+
+### 动机
+表达式可能非常复杂而难以阅读。这种情况下，局部变量可以帮助我们将表达式分解为比较容易管理的形式。在面对这一块复杂逻辑时，局部变量使我能给其中的一部分命名，这样我们就能更好地理解这部分逻辑是要干什么。
+
+### 做法
++ 确认要提炼的表达式没有副作用
++ 声明一个不可修改的变量，把你想要提炼的表达式复制一份，以该表达式的结果值给这个变量赋值
++ 用这个新变量取代原来的表达式
++ 测试
+
+### 范例
+> 提炼前：
+```js
+function price(order) {
+  // price is base price - quantity discount + shipping
+  return order.quantity * order.itemPrice -
+    Math.max(0, order.quantity - 500) * order.itemPrice * 0.05 +
+    Math.min(order.quantity * order.itemPrice * 0.1, 100);
+}
+```
+
+> 提炼后：
+```js
+function price(order) {
+  // price is base price - quantity discount + shipping
+  const basePrice = order.quantity * order.itemPrice;
+  const quantityDiscount = Math.max(0, order.quantity - 500) * order.itemPrice * 0.05;
+  const shipping = Math.min(basePrice * 0.1, 100);
+  return basePrice - quantityDiscount + shipping;
+}
+```
+
+### 范例：在一个类中
+> 提炼前：
+```js
+class Order {
+  constructor(aRecord) {
+    this._data = aRecord;
+    get quantity() {
+      return this._data.quantity;
+    }
+    get itemPrice() {
+      return this._data.itemPrice;
+    }
+    get price() {
+      return this.quantity * this.itemPrice -
+        Math.max(0, this.quantity - 500) * this.itemPrice * 0.05 +
+        Math.min(this.quantity * this.itemPrice * 0.1, 100);
+    }
+  }
+}
+```
+
+> 提炼后：
+```js
+class Order {
+  constructor(aRecord) {
+    this._data = aRecord;
+    get quantity() {
+      return this._data.quantity;
+    }
+    get itemPrice() {
+      return this._data.itemPrice;
+    }
+    get price() {
+      return this.basePrice - this.quantityDiscount + this.shipping;
+    }
+    get basePrice() {
+      return this.quantity * this.itemPrice
+    }
+    get quantityDiscount() {
+      return Math.max(0, this.quantity - 500) * this.itemPrice * 0.05;
+    }
+    get shipping() {
+      return Math.min(this.basePrice * 0.1, 100);
+    }
+  }
+}
+```
+### 好处
+它们提供了合适的上下文，方便分享相关的逻辑和数据。
