@@ -367,3 +367,114 @@ class Order {
 + 重复前面两步，逐一替换为直接使用赋值语句的右侧表达式 
 + 删除该变量的声明点和赋值语句 
 + 测试
+
+## 6.5 改变函数声明（Change Function Declaration)
+别名：函数改名（ReName Function）  
+曾用名： 函数改名（ReName Method）  
+曾用名： 添加参数（Add Parameter）  
+曾用名： 移除参数（Remove Parameter）  
+别名： 修改签名（Change Signature）  
+### 动机 
+函数是我们将程序拆分成小块的主要方式。函数声明则展现了如何将这些小块组合在一起工作————可以说，它们就是软件系统的关节。  
+对于这些关节而言，最重要的元素当属函数的名字。一个好的名字能让人一眼就看出函数的用途。（有一个改进函数名字的好方法：先写一句注释描述这个函数的用途，再把这句注释变成函数的名字。）   
+对于函数的参数，道理也是一样的。函数的参数列表阐述了函数如何与外部世界共处。
+
+### 做法 
+在进行此重构时，查看变更的范围，自问是否能一步到位地修改函数声明及其所有调用者。如果可以，我们可以采用简单的做法。迁移式的做法让我可以逐步修改调用方代码，如果函数被很多地方调用，或者修改不容易，或者要修改的是一个多态函数，或者对函数声明的修改比较复杂，能渐进式地逐步修改就很重要。  
+
+#### 简单做法 
++ 如果想要移除一个参数，需要先确定函数体内没有使用该参数 
++ 修改函数声明，使其成为你期望的状态 
++ 找出所用使用旧的函数声明的地方，将它们改为使用新的函数声明 
++ 测试 
+
+#### 迁移式的做法
++ 如果有必要的话，先对函数体内部加以重构，使后面的提炼步骤易于开展
++ 使用提炼函数将函数体提炼成一个新函数
++ 如果提炼出的函数需要新增参数，用前面的简单做法添加即可
++ 测试
++ 对旧函数使用内联函数
++ 如果新函数使用了临时的名字，再次使用改变函数声明将其改回原来的名字
++ 测试
+
+### 范例：函数改名（简单做法）
+```js 
+//改名前
+function circum(radius) {
+  return 2 * Math.PI * radius;
+}
+
+// 改名后
+function circumference(radius) {
+  return 2 * Math.PI * radius;
+}
+```
+
+### 范例：函数改名（迁移式做法）
+```js 
+//改名前
+function circum(radius) {
+  return 2 * Math.PI * radius;
+}
+
+// 改名后
+function circum(radius) {
+  return circumference(radius);
+}
+function circumference(radius) {
+  return 2 * Math.PI * radius;
+}
+```
+
+### 范例：添加参数
+> 改名前
+```js
+class Book {
+  constructor(customer) {
+    this.addReservation(customer);
+  }
+  addReservation(customer) {
+    this._reservations.push(customer);
+  }
+}
+```
+
+> 改名后
+```js
+class Book {
+  constructor(customer) {
+    this.addReservation(customer);
+  }
+  addReservation(customer) {
+    this.zz_addReservation(customer， false);
+  }
+  // 增加参数
+  zz_addReservation(customer, isPriority) {
+    // 引入断言
+    assert(isPriority === true || isPriority === false)
+    this._reservations.push(customer);
+  }
+}
+```
+
+### 范例：把参数改为属性
+> 修改前
+```js 
+function isNewEngland(aCustomer) {
+  return ["MA", "CT", "ME", "VT", "NH", "RI"].includes(aCustomer.address.state);
+}
+
+const newEnglanders = someCustomers.filter(c => inNewEngland(c));
+...
+```
+
+> 修改后
+```js 
+function isNewEngland(stateCode) {
+  return ["MA", "CT", "ME", "VT", "NH", "RI"].includes(stateCode);
+}
+
+const newEnglanders = someCustomers.filter(c => inNewEngland(c.address.state));
+...
+```
+自动化重构工具减少了迁移式做法的用武之地，同时也使迁移式做法更加高效。自动化重构工具可以安全地处理相当复杂的改名、参数变更等情况。如果遇到类似这里的例子，尽管工具无法自动完成整个重构，还是可以更快、更安全地完成关键的提炼和内联步骤，从而简化整个重构过程。
