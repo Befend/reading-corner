@@ -582,3 +582,69 @@ function setTitle(arg) {
   _title = arg;
 }
 ```
+
+## 6.8 引入参数对象（Introduce Parameter Object）
+
+### 动机
+将数据组织成结构是一件有价值的事，因为这让数据项之间的关系变得明晰。使用新的数据结构，函数的参数列表也能缩短。并且经过重构之后，所有使用该数据结构的函数都会通过同样的名字来访问其中的元素，从而提升代码的一致性。 
+但这项重构真正的意义在于，它会催生代码中更层次的改变。 
+
+### 做法
++ 如果暂时还没有一个合适的数据结构，就创建一个
++ 测试
++ 使用改变函数声明给原来的函数新增一个参数，类型是新建的数据结构
++ 测试
++ 调整所有调用者，传入新数据结构的适当实例。每修改一处，执行测试
++ 用新数据结构中的每项元素，逐一取代参数列表中与之对应的参数项，然后删除原来的参数。
++ 测试
+
+### 范例
+> 引入前
+```js
+const station = {
+  name: "ZB1",
+  readings: [
+    { temp: 47, time: "2016-11-10 9:10" },
+    { temp: 53, time: "2016-11-10 9:20" },
+    { temp: 58, time: "2016-11-10 9:30" },
+    { temp: 53, time: "2016-11-10 9:40" },
+    { temp: 51, time: "2016-11-10 9:50" }
+  ]
+};
+
+function readingsOutsideRange(station, min, max) {
+  return station.readings.filter(r => r.temp < min || r.temp > max);
+}
+
+alerts = readingsOutsideRange(station, operatingPlan.temperatureFloor, operatingPlan.temperatureCeiling)
+```
+
+> 引入后
+```js
+class NumberRange {
+  constructor(min, max) {
+    this._data = { min: min, max: max };
+  }
+  get min() { return this._data.min; }
+  get max() { return this._data.max; }
+  contains(arg) { return (arg >= this.min && arg <= this.max); }
+}
+
+const station = {
+  name: "ZB1",
+  readings: [
+    { temp: 47, time: "2016-11-10 9:10" },
+    { temp: 53, time: "2016-11-10 9:20" },
+    { temp: 58, time: "2016-11-10 9:30" },
+    { temp: 53, time: "2016-11-10 9:40" },
+    { temp: 51, time: "2016-11-10 9:50" }
+  ]
+};
+
+function readingsOutsideRange(station, range) {
+  return station.readings.filter(r => !range.contains(r.temp));
+}
+
+const range = new NumberRange(operatingPlan.temperatureFloor, operatingPlan.temperatureCeiling)
+alerts = readingsOutsideRange(station, range)
+```
