@@ -478,3 +478,63 @@ const newEnglanders = someCustomers.filter(c => inNewEngland(c.address.state));
 ...
 ```
 自动化重构工具减少了迁移式做法的用武之地，同时也使迁移式做法更加高效。自动化重构工具可以安全地处理相当复杂的改名、参数变更等情况。如果遇到类似这里的例子，尽管工具无法自动完成整个重构，还是可以更快、更安全地完成关键的提炼和内联步骤，从而简化整个重构过程。
+
+## 6.6 封装变量（Encapsulate Variable)
+曾用名：自封装字段（Self-Encapsulate Field）  
+曾用名：封装字段（Encapsulate Field)  
+
+### 动机 
+重构的作用就是调整程序中的
+如果想要搬移一处被广泛使用的数据，最好的办法往往就是先以函数形式封装所有对该数据的访问。  
+对于所有可变的数据，只要它的作用域超出单个函数，我就会将其封装起来，只允许通过函数访问。数据的作用域越大，封装就越重要。 
+
+### 做法 
++ 创建封装函数，在其中访问和更新变量值 
++ 执行静态检查 
++ 注意修改使用该变量的代码，将其改为调用合适的封装函数，每次替换之后，执行测试 
++ 限制变量的可见性 
++ 测试
++ 如果变量的值是一个记录，考虑使用封装记录 
+
+### 范例 
+> 封装前 
+```js 
+let defaultOwner = {firstName: "Martin", lastName: "Fowler"}; 
+spaceship.owner = defaultOwner;
+
+// 更新内容
+defaultOwner = {firstName: "Rebecca", lastName: "Parsons"}; 
+```
+
+> 封装后 
+```js 
+let defaultOwnerData = {firstName: "Martin", lastName: "Fowler"}; 
+export function defaultOwner() {
+  return Object.assign({}, defaultOwnerData);
+}
+
+export function setDefaultOwner(arg) {
+  defaultOwnerData = arg;
+}
+
+spaceship.owner1 = defaultOwner();
+const owner2 = defaultOwner();
+owner2.lastName = "Persons";
+setDefaultOwner({firstName: "Rebecca", lastName: "Parsons"}); 
+
+class Person {
+  constructor(data) {
+    this._lastName = data.lastName;
+    this._firstName = data.firstName;
+  }
+  get lastName() {
+    return this._lastName;
+  }
+  get firstName() {
+    return this._firstName;
+  }
+  // and so on for other properties
+}
+```
+
+如你所见，数据封装很有价值，但往往不简单。到底应该封装什么，以及如何封装，取决于数据被使用的方式，以及我们想要修改数据的方式。不过一言以蔽之，数据被使用得越广，就越是值得花精力给它一个体面的封装。
