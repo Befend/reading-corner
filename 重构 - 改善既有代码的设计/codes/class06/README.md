@@ -538,3 +538,47 @@ class Person {
 ```
 
 如你所见，数据封装很有价值，但往往不简单。到底应该封装什么，以及如何封装，取决于数据被使用的方式，以及我们想要修改数据的方式。不过一言以蔽之，数据被使用得越广，就越是值得花精力给它一个体面的封装。
+
+## 6.7 变量改名（Rename Variable）
+### 动机 
+好的命名是整洁编程的核心。变量可以很好地解释一段程序在干什么。 
+
+### 机制 
++ 如果变量被广泛使用，考虑运用封装变量将其封装起来
++ 找出所有使用该变量的代码，逐一修改
++ 测试
+
+### 范例 
+> 修改前
+```js
+let tpHd = "untitled";
+result += `<h1>${tpHd}</h1>`;
+tpHd = obj['articleTitle'];
+
+result += `<h1>${title()}</h1>`;
+
+function title() {
+  return tpHd;
+}
+
+function setTitle(arg) {
+  tpHd = arg;
+}
+```
+
+> 修改后
+```js
+let _title = "untitled";
+result += `<h1>${_title}</h1>`;
+_title = obj['articleTitle'];
+
+result += `<h1>${title()}</h1>`;
+
+function title() {
+  return _title;
+}
+
+function setTitle(arg) {
+  _title = arg;
+}
+```
