@@ -802,3 +802,51 @@ it('check reading unchanged', function() {
 });
 ```
 如果编程语言支持不可变的数据结构，那么就没有这个问题了，那样的语言中会更常用到变换。但即使编程语言不支持数据结构不可变，如果数据是在只读的上下文中被使用，还是可以使用变换。
+
+## 拆分阶段（Split Phase）
+### 动机
+每当有一段代码在同时处理两件不同的事，我们就可以把它拆分成各自独立的模块。  
+编译器就是最典型的例子。在大型软件中，类似这样的阶段拆分很常见。例如编译器的每个阶段又包含若干函数和类。即使只有不大的一块代码，只要我们发现了有益的将其拆分成多个阶段的机会，同样可以运用拆分阶段重构手法。
+### 做法
++ 将第二阶段的代码提炼成独立的函数
++ 测试
++ 引入一个中转数据结构，将其作为参数添加到提炼出的新函数的参数列表中
++ 测试
++ 逐一检查提炼出的“第二阶段函数”的每个参数。如果某个参数被第一阶段用到，就将其移入中转数据结构。每次搬移之后都要执行测试。
++ 对第一阶段的代码运用提炼函数，让提炼出的函数返回中转数据结构
+### 范例
+> 拆分前
+```js
+function priceOrder(product, quantity, shippingMethod) {
+  const basePrice = product.basePrice * quantity;
+  const discount = Math.max(quantity - product.discountThreshold, 0) * product.basePrice * product.discountRate;
+  const shippingPerCase = (basePrice > shippingMethod.discountThreshold) ? shippingMethod.discountedFee : shippingMethod.feePerCase;
+  const shippingCost = quantity * shippingPerCase;
+  const price = basePrice - discount + shippingCost;
+  return price;
+}
+```
+> 拆分后
+```js
+function priceOrder(product, quantity, shippingMethod) {
+  const  = calculatePricingData(product, quantity);
+  return applyShipping(priceData, shippingMethod);
+}
+
+function calculatePricingData(product, quantity) {
+  const basePrice = product.basePrice * quantity;
+  const discount = Math.max(quantity - product.discountThreshold, 0) * product.basePrice * product.discountRate;
+  return {
+    basePrice: basePrice,
+    quantity: quantity,
+    discount: discount
+  };
+}
+
+function applyShipping(priceData, shippingMethod) {
+  const shippingPerCase = (priceData.basePrice > shippingMethod.discountThreshold) ? shippingMethod.discountedFee : shippingMethod.feePerCase;
+  const shippingCost = priceData.quantity * shippingPerCase;
+  return priceData.basePrice - priceData.discount + shippingCost;
+}
+```
+
