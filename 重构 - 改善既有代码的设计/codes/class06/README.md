@@ -726,3 +726,79 @@ const rawReading = acquireReading();
 const aReading = new Reading(rawReading);
 const baseCharge = aReading.baseCharge;
 ```
+
+## 6.10 函数组合成变换（Combine Functions into Transform）
+### 动机
+把所有计算派生数据的逻辑收拢到一处，这样始终可以在固定的地方找到和更新这些逻辑，避免到处重复。   
+一个方式是采用数据变换函数：这种函数接受源数据作为输入，计算出所有的派生数据，将派生数据以字段形式填入输出数据。有了变换函数，我们就始终只需要到变换函数中去检查计算派生数据的逻辑。  
+函数组合成变换的替代方案是函数组合成类，后者的做法先用源数据创建一个类，再把相关的计算逻辑搬移到类中。 
+引入变换（或者类）都是为了让相关的逻辑找起来方便。
+### 做法
++ 创建一个变换函数，输入参数是需要变换的记录，并直接返回该记录的值
++ 挑选一块逻辑，将其主体移入变换函数中，把结果作为字段添加到输出记录中，修改客户端代码，令其使用这个字段
++ 测试
++ 针对其他相关的计算逻辑，重复上述步骤
+### 范例
+> 修改前
+```js
+function enrichReading(original) {
+  // Lodash库的cloneDeep函数进行深复制
+  const result = _.cloneDeep(original);
+  return result;
+}
+let reading = {customer: "ivan",quantity: 10, month: 5, year: 2023};
+
+// Client 1
+const aReading = acquireReading();
+const baseCharge = baseRate(aReading.month, aReading.year) * aReading.quantity;
+
+// Client 2
+const aReading = acquireReading();
+const base = baseRate(aReading.month, aReading.year) * aReading.quantity;
+const taxableCharge = Math.max(0, base - taxThreshold(aReading.year));
+
+// Client 3
+const aReading = acquireReading();
+const basicChargeAmount = calculateBaseCharge(aReading);
+function calculateBaseCharge(aReading) {
+  return baseRate(aReading.month, aReading.year) * aReading.quantity;
+}
+```
+
+> 修改后
+```js
+
+
+function enrichReading(original) {
+  // Lodash库的cloneDeep函数进行深复制
+  const result = _.cloneDeep(original);
+  result.baseCharge = calculateBaseCharge(result);
+  result.taxableCharge = Math.max(0, result.baseCharge - taxThreshold(result.year))
+  return result;
+}
+
+// Client 1
+const rawReading = acquireReading();
+const aReading = new Reading(rawReading);
+const baseCharge = aReading.baseCharge;
+
+// Client 2
+const rawReading = acquireReading();
+const aReading = new Reading(rawReading);
+const base = baseRate(aReading.month, aReading.year) * aReading.quantity;
+const taxableCharge = Math.max(0, base - taxThreshold(aReading.year));
+
+// Client 3
+const rawReading = acquireReading();
+const aReading = enrichReading(rawReading);
+const taxableCharge = result.taxableCharge;
+
+// 测试用例
+it('check reading unchanged', function() {
+  const reading = {customer: "ivan",quantity: 10, month: 5, year: 2023};
+  const oracle = _.cloneDeep(baseReading);
+  enrichReading(baseReading);
+  assert.deepEqual(baseReading, oracle);
+});
+```
+如果编程语言支持不可变的数据结构，那么就没有这个问题了，那样的语言中会更常用到变换。但即使编程语言不支持数据结构不可变，如果数据是在只读的上下文中被使用，还是可以使用变换。
