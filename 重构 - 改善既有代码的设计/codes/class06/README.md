@@ -645,6 +645,84 @@ function readingsOutsideRange(station, range) {
   return station.readings.filter(r => !range.contains(r.temp));
 }
 
-const range = new NumberRange(operatingPlan.temperatureFloor, operatingPlan.temperatureCeiling)
-alerts = readingsOutsideRange(station, range)
+const range = new NumberRange(operatingPlan.temperatureFloor, operatingPlan.temperatureCeiling);
+alerts = readingsOutsideRange(station, range);
+```
+
+## 6.9 函数组合成类（Combine Functions into Class）
+### 动机
+类，在大多数现代编程语言中都是基本的构造。它们把数据与函数捆绑到同一个环境中，将一部分数据与函数暴露给其他程序元素以便于写作。它们是面向对象语言的首要构造，在其他程序设计方法中也同样有用。   
+将函数组织到一起的另一种方式是函数组合成变换。具体使用哪个重构手法，要看程序整体的上下文。使用类有一大好处：客户端可以修改对象的核心数据，通过计算得出的派生数据则会自动与核心数据保持一致。  
+类似这样的一组函数不仅可以组合成一个类，而且可以组合成一个嵌套函数。通常我更倾向于类而非嵌套函数，因为后者测试起来会比较困难。   
+在有些编程语言中，类不是一等公民，而函数则是。面对这样的语言，可以用“函数作为对象”的形式来实现这个符合重构的手法。
+### 做法
++ 运用**封装记录**对多个函数共用的数据加以封装
++ 对于使用该记录结构的每个函数，运用**搬移函数**将其移入新类
++ 用以处理该数据记录的逻辑可以用**提炼函数**提炼出来，并移入新类
+### 范例
+> 修改前
+```js
+let reading = {customer: "ivan",quantity: 10, month: 5, year: 2023};
+
+// Client 1
+const aReading = acquireReading();
+const baseCharge = baseRate(aReading.month, aReading.year) * aReading.quantity;
+
+// Client 2
+const aReading = acquireReading();
+const base = baseRate(aReading.month, aReading.year) * aReading.quantity;
+const taxableCharge = Math.max(0, base - taxThreshold(aReading.year));
+
+// Client 3
+const aReading = acquireReading();
+const base = calculateBaseCharge(aReading);
+function calculateBaseCharge(aReading) {
+  return baseRate(aReading.month, aReading.year) * aReading.quantity;
+}
+```
+
+> 修改后
+```js
+class Reading {
+  constructor(data) {
+    this._customer = data.customer;
+    this._quantity = data.quantity;
+    this._month = data.month;
+    this._year = data.year;
+    get customer() {
+      return this._customer;
+    }
+    get quantity() {
+      return this._quantity;
+    }
+    get month() {
+      return this._month;
+    }
+    get year() {
+      return this._year;
+    }
+    get baseCharge() {
+      return baseRate(this.month, this.year) * this.quantity;
+    }
+    get taxableCharge() {
+      return Math.max(0, this.baseCharge - taxThreshold(this.year));
+    }
+  }
+}
+
+// Client 1
+const rawReading = acquireReading();
+const aReading = new Reading(rawReading);
+const baseCharge = aReading.baseCharge;
+
+// Client 2
+const rawReading = acquireReading();
+const aReading = new Reading(rawReading);
+const taxableCharge = aReading.taxableCharge;
+
+
+// Client 3
+const rawReading = acquireReading();
+const aReading = new Reading(rawReading);
+const baseCharge = aReading.baseCharge;
 ```
