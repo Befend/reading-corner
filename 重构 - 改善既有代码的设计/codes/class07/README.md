@@ -163,3 +163,103 @@ function compareUsage(customerID, laterYear, month) {
 // 另一种方案需要更多工作，但能提供更可靠的控制粒度：对每个字段循环应用封装记录。
 ```
 
+## 7.2 封装集合（Encapsulate Collection）
+### 动机
+我们通常鼓励封装 —— 使用面向对象技术的开发者对封装尤为重视 —— 但封装集合时人们常常犯一个错误：只对集合变量的访问进行了封装，但依然让取值函数返回集合本身。这使得集合的成员变量可以直接被修改，而封装它的类则全然不止，无法接入。   
+不要让集合的取值函数返回原始集合，不就避免了客户端的意外修改。   
+避免直接修改集合的方法：
++ 永远不直接返回集合的值
++ 以某种形式限制集合的访问权，只允许对集合进行读操作。  
+
+使用数据代理和数据复制的另一个区别是，对源数据的修改会反映到代理上，但不会反映到副本上。  
+采用哪种方法并无定式，最重要的是在同个代码库中做法要保持一致。  
+### 做法
++ 如果集合的引用尚未被封装起来，先用封装变量封装它
++ 在类上添加用于“添加集合元素”和“移除集合元素”的函数 
++ 执行静态检查
++ 查找集合的引用点。如果有调用者直接修改集合，令该处调用使用新的添加/移除元素的函数。每次修改后执行测试
++ 修改集合的取值函数，使其返回一份只读的数据，可以使用只读代理或数据副本
++ 测试
+### 范例
+```js
+class Person {
+  constructor(name) {
+    this._name = name;
+    this._courses = [];
+  }
+  get name() {
+    return this._name;
+  }
+  get courses() {
+    return this._courses;
+  }
+  set courses(aList) {
+    return this._courses = aList;
+  }
+}
+
+class Course {
+  constructor(name, isAdvanced) {
+    this._name = name;
+    this._isAdvanced = isAdvanced;
+  }
+  get name() {
+    return this._name;
+  }
+  get isAdvanced() {
+    return this._isAdvanced;
+  }
+}
+
+const basicCourseNames = readBasicCourseNames(filename);
+aPerson.courses = basicCourseNames.map(name => new Course(name, false));
+for(const name of basicCourseNames) {
+  aPerson.courses.push(new Course(name, false));
+}
+```
+> 封装后
+```js
+class Person {
+  constructor(name) {
+    this._name = name;
+    this._courses = [];
+  }
+  get name() {
+    return this._name;
+  }
+  get courses() {
+    return this._courses.slice();
+  }
+  set courses(aList) {
+    return this._courses = aList.slice();
+  }
+  addCourse(aCourse) {
+    this._courses.push(aCourse);
+  }
+  removeCourse(aCourse, fnIfAbsent = () => {throw new RangeError();}) {
+    const index = this._courses.indexOf(aCourse);
+    if (index === -1) fnIfAbsent();
+    else this._courses.splice(index, 1);
+  }
+}
+
+class Course {
+  constructor(name, isAdvanced) {
+    this._name = name;
+    this._isAdvanced = isAdvanced;
+  }
+  get name() {
+    return this._name;
+  }
+  get isAdvanced() {
+    return this._isAdvanced;
+  }
+}
+
+const basicCourseNames = readBasicCourseNames(filename);
+aPerson.courses = basicCourseNames.map(name => new Course(name, false));
+for(const name of basicCourseNames) {
+  aPerson.addCourse(new Course(name, false));
+}
+```
+
