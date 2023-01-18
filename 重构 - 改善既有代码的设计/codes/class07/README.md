@@ -380,3 +380,91 @@ class Order {
   }
 }
 ```
+
+## 7.5 提炼类（Extract CLass）
+反向重构：内联类
+### 动机
+在维护一个有大量函数和数据的类中，我们往往需要考虑将哪些部分分离出来，并将它们分离到一个独立的类中。 
+### 做法
++ 决定如何分解类所负的责任
++ 创建一个新的类，用以表现从旧类中分离出来的责任
++ 构造旧类时创建一个新类的实例，建立“从旧类访问新类”的连接关系
++ 对于你想搬移的每一个字段，运用搬移字段搬移它。每次更改后运行测试
++ 使用搬移函数将必要函数搬移到新类。先搬移较低层函数（也就是“被其他函数调用”多余“调用其他函数”者）。每次更改后运行测试
++ 检查两个类的接口，去掉不再需要的函数，必要时为函数重新取一个适合新环境的名字
++ 决定是否公开新的类。如果确实需要，考虑对新类应用将引用对象改为值对象使其成为一个值对象
+### 范例
+> 提炼前
+```js
+class Person {
+  get name() {
+    return this._name;
+  }
+  set name(arg) {
+    this._name = arg;
+  }
+  get telephoneNumber() {
+    return `(${this.officeAreaCode}) ${this.officeNumber}`;
+  }
+  get officeAreaCode() {
+    return this._officeAreaCode;
+  } 
+  set officeAreaCode(arg) {
+    this._officeAreaCode = arg;
+  }
+  get officeNumber() {
+    return this._officeNumber;
+  } 
+  set officeNumber(arg) {
+    this._officeNumber = arg;
+  }
+}
+```
+
+> 提炼后
+```js
+class Person {
+  constructor() {
+    this._telephoneNumber = new TelephoneNumber();
+  }
+  get name() {
+    return this._name;
+  }
+  set name(arg) {
+    this._name = arg;
+  }
+  get telephoneNumber() {
+    return this._telephoneNumber.toString();
+  }
+  get officeAreaCode() {
+    return this._telephoneNumber.officeAreaCode;
+  } 
+  set officeAreaCode(arg) {
+    this._telephoneNumber.officeAreaCode = arg;
+  }
+  get officeNumber() {
+    return this._telephoneNumber.number;
+  } 
+  set officeNumber(arg) {
+    this._telephoneNumber.number = arg;
+  }
+}
+
+class TelephoneNumber {
+  toString() {
+    return `(${this.areaCode}) ${this.number}`;
+  }
+  get areaCode() {
+    return this._areaCode;
+  } 
+  set areaCode(arg) {
+    this._areaCode = arg;
+  }
+  get number() {
+    return this._number;
+  } 
+  set number(arg) {
+    this._number = arg;
+  }
+}
+```
