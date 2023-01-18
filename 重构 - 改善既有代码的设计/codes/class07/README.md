@@ -632,4 +632,51 @@ class Department {
 }
 manager = aPerson.manager;
 ```
-
+8 移除中间人（Remove Middle Man）
+反向重构：隐藏委托关系
+### 动机
+每当客户端要使用受托类的新特性时，你就必须在服务端添加一个简单委托函数。随着受托类的新特性时，你就必须再服务端添加一个简单委托函数。随着受托类的特性（功能）越来越多，更多的转发函数就会使人烦躁。
+### 做法
++ 为受托对象创建一个取值函数
++ 对于每个委托函数，让其客户端转为连续的访问函数调用。每次替换后运行测试
+### 范例
+> 修改前
+```js
+class Person {
+  get department() {
+    return this._department;
+  }
+  set department(arg) {
+    this._department = arg;
+  }
+  get manager() {
+    return this._department.manager;
+  } 
+}
+class Department {
+  get manager() {
+    return this._manager;
+  }
+}
+manager = aPerson.department.manager;
+```
+> 修改后
+```js
+class Person {
+  get department() {
+    return this._department;
+  }
+  set department(arg) {
+    this._department = arg;
+  }
+  get manager() {
+    return this.department.manager;
+  } 
+}
+class Department {
+  get manager() {
+    return this._manager;
+  }
+}
+manager = aPerson.department.manager;
+```
