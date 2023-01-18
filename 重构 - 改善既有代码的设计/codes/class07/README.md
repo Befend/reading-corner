@@ -552,3 +552,84 @@ class Shipment {
 }
 aShipment.shippingCompany = request.vendor;
 ```
+## 7.7 隐藏委托关系（Hide Delegate）
+反向重构：移除中间人
+### 动机
+一个好的模块化的设计，“封装”是最关键特征之一。“封装”意味着每个模块都应该尽可能少了解系统的其他部分。 
+我们可以在服务对象上放置一个简单的委托函数，将委托关系隐藏起来，从而去除这种依赖。  
+### 做法
++ 对于每个委托关系中的函数，在服务对象端建立一个简单的委托函数
++ 调整客户端，令它只调用服务对象提供的函数。每次调整后运行测试
++ 如果将来不再有任何客户端需要取用Delegate（受托类），便可移除服务对象中的相关访问函数
++ 测试
+### 范例
+> 修改前
+```js
+class Person {
+  constructor(name) {
+    this._name = name;
+  }
+  get name() {
+    return this._name;
+  }
+  get department() {
+    return this._department;
+  }
+  set department(arg) {
+    this._department = arg;
+  }
+}
+
+class Department {
+  get chargeCode() {
+    return this._chargeCode;
+  }
+  set chargeCode(arg) {
+    this._chargeCode = arg;
+  }
+  get manager() {
+    return this._manager;
+  }
+  set manager(arg) {
+    this._manager = arg;
+  }
+}
+manager = aPerson.department.manager;
+```
+> 修改后
+```js
+class Person {
+  constructor(name) {
+    this._name = name;
+  }
+  get name() {
+    return this._name;
+  }
+  get department() {
+    return this._department;
+  }
+  set department(arg) {
+    this._department = arg;
+  }
+  get manager() {
+    return this._department.manager;
+  } 
+}
+
+class Department {
+  get chargeCode() {
+    return this._chargeCode;
+  }
+  set chargeCode(arg) {
+    this._chargeCode = arg;
+  }
+  get manager() {
+    return this._manager;
+  }
+  set manager(arg) {
+    this._manager = arg;
+  }
+}
+manager = aPerson.manager;
+```
+
