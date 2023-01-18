@@ -468,3 +468,87 @@ class TelephoneNumber {
   }
 }
 ```
+
+## 7.6 内联类（Inline Class）
+反向重构：提炼类
+### 动机
+内联类与提炼类相反。
+重新组织代码时常用的手法：有时把相关元素一口气搬移到位更简单，但有时先用内联手法合并各自的上下文，再使用提炼手法再次分离他们更合适。
+### 做法
++ 对于待内联类（源类）中的所有public函数，在目标类上创建一个对应的函数，新创建的所有函数应该直接委托至源类
++ 修改源类public方法的所有引用点，令它们调用目标类对应的委托方法。每次更改后运行测试
++ 将源类中的函数与数据全部搬移到目标类，每次修改之后进行测试，直到源类编程空壳为止
++ 删除源类
+### 范例
+> 修改前
+```js
+class TrackingInformation {
+  get shippingCompany() {
+    return this._shippingCompany;
+  }
+  set shippingCompany(arg) {
+    this._shippingCompany = arg;
+  }
+  get trackingNumber() {
+    return this._trackingNumber;
+  }
+  set trackingNumber(arg) {
+    this._trackingNumber = arg;
+  }
+  get display() {
+    return `${this.shippingCompany}: ${this.trackingNumber}`;
+  }
+}
+
+class Shipment {
+  get trackingInfo() {
+    return this._trackingInformation.display;
+  }
+  get trackingInformation() {
+    return this._trackingInformation;
+  }
+  set trackingInformation(aTrackingInformation) {
+    this._trackingInformation = aTrackingInformation;
+  }
+}
+aShipment.trackingInformation.shippingCompany = request.vendor;
+```
+> 修改后
+```js
+class TrackingInformation {
+  get display() {
+    return `${this.shippingCompany}: ${this.trackingNumber}`;
+  }
+  get shippingCompany() {
+    return this._shippingCompany;
+  }
+  set shippingCompany(arg) {
+    this._shippingCompany = arg;
+  }
+  get trackingNumber() {
+    return this._trackingNumber;
+  }
+  set trackingNumber(arg) {
+    this._trackingNumber = arg;
+  }
+}
+
+class Shipment {
+  get trackingInfo() {
+    return `${this.shippingCompany}: ${this.trackingNumber}`;
+  }
+  get shippingCompany(arg) {
+    return this._shippingCompany;
+  }
+  set shippingCompany(arg) {
+    this._shippingCompany = arg;
+  }
+  get trackingNumber() {
+    return this._trackingNumber;
+  }
+  set trackingNumber(arg) {
+    this._trackingNumber = arg;
+  }
+}
+aShipment.shippingCompany = request.vendor;
+```
