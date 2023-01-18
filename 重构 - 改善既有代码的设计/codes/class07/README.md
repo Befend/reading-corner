@@ -263,3 +263,72 @@ for(const name of basicCourseNames) {
 }
 ```
 
+## 7.3 以对象取代基本类型（Replace Primitive with Object）
+曾用名：以对象取代数据值（Replace Data Value with Object）
+曾用名：以类取代类型码（Replace Type Code with Class）
+
+### 动机
+一旦我发现对某个数据的操作不仅仅局限于打印时，我就会为它创建一个新类。创建新类无须太大的工作量，但我们发现他们往往对代码库有深远的影响。  
+### 做法
++ 如果变量尚未被封装起来，先使用封装变量封装它
++ 为这个数据值创建一个简单的类。类的构造函数应该保存这个数据值，并为它提供一个取值函数
++ 执行静态检查
++ 修改第一步得到的设值函数，令其创建一个新类的对象并将其存入字段，如果有必要的话，同时修改字段的类型声明
++ 修改取值函数，令其调用新类的取值函数，并返回结果
++ 测试
++ 考虑对第一步得到的访问函数使用函数改名，以便更好反映用途
++ 考虑应用将引用对象改为值对象或将值对象改为引用对象，明确指出新对象的角色是值对象还是引用对象
+### 范例
+> 封装前
+```js
+class Order {
+  constructor(data) {
+    this.priority = data.priority;
+    // more initialization
+  }
+}
+
+highPriorityCount = orders.filter(0 => 'high' === o.priority || 'rush' === o.priority).length;
+```
+> 封装后
+```js
+class Priority {
+  constructor(value) {
+    if (value instanceof Priority) return value;
+    if (Priority.legalValues().includes(value))
+      this._value = value;
+    else 
+      throw new Error(`<${value}> is invalid for Priority`);
+  }
+  toString() {
+    return this._value;
+  }
+  get _index() {
+    return Priority.legalValues().findIndex(s => s === this._value);
+  }
+  static legalValues() {
+    return ['low', 'normal', 'high', 'rush'];
+  }
+  equals(other) {
+    return this._index === other._index;
+  }
+  higherThan(other) {
+    return this._index > other._index;
+  }
+  lowerThan(other) {
+    return this._index < other._index;
+  }
+}
+class Order {
+  constructor(data) {
+    this.priority = data.priority;
+    // more initialization
+  }
+  // 封装变量
+  get priority() { return this._priority; }
+  get priorityString() { return this._priority.toString(); }
+  set priority(aString) { this._priority = new Priority(aString); }
+}
+
+highPriorityCount = orders.filter(0 => o.priority.higherThan(new Priority('normal'))).length;
+```
