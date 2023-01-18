@@ -332,3 +332,51 @@ class Order {
 
 highPriorityCount = orders.filter(0 => o.priority.higherThan(new Priority('normal'))).length;
 ```
+
+## 7.4 以查询取代临时变量（Replace Temp with Query）
+### 动机
+临时变量的一个作用是保存某段代码的返回值，以便在函数的后面部分使用它。   
+以查询取代临时变量手法只适用于处理某些类型的临时变量：那些只被计算一次且之后不再被修改的变量。
+### 做法
++ 检查变量在使用前是否已经完全计算完毕，检查计算它的那段代码是否每次都能得到一样的值
++ 如果变量目前不是只读的，但是可以改造成只读变量，那就先改造它
++ 测试
++ 将为变量赋值的代码段提炼成函数
++ 测试
++ 应用内联变量手法移除临时变量
+### 范例
+> 封装前
+```js
+class Order {
+  constructor(quantity， item) {
+    this._quantity = quantity;
+    this._item = item;
+  }
+  get price() {
+    var basePrice = this._quantity * this._item.price;
+    var discountFactor = 0.98;
+    if (basePrice > 1000) discountFactor -= 0.03;
+    return basePrice * discountFactor;
+  }
+}
+```
+> 封装后
+```js
+class Order {
+  constructor(quantity， item) {
+    this._quantity = quantity;
+    this._item = item;
+  }
+  get price() {
+    return this.basePrice * this.discountFactor;
+  }
+  get basePrice() {
+    return this._quantity * this._item.price;
+  }
+  get discountFactor() {
+    const discountFactor = 0.98;
+    if (this.basePrice > 1000) discountFactor -= 0.03;
+    return discountFactor;
+  }
+}
+```
