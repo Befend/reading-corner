@@ -7,3 +7,130 @@
 对付循环，我们有两个常用的手法：
 + 拆分循环
 + 移除死代码
+## 8.1 搬移函数（Move Function）
+曾用名：搬移函数（Move Method）
+### 动机
+模块化是优秀软件设计的核心所在，好的模块化能够让我们在修改程序时只需理解程序的一小部分。为了设计出高度模块化的程序，我们得保证互相关联的软件要素都能集中到一块，并确保块与块之间的联系易于查找、直观易懂。同时，我们对模块设计的理解并不是一成不变的。要将这种理解反映到代码上，就得不断地搬移这些元素。  
+搬移函数最直接的一个动因是，它频繁引用其他上下文中的元素，而对自身上下文中的元素却关心甚少。  
+先把函数安置到某一个上下文里去，这样我们就能发现它们是否契合，如果不太适合我们可以再把函数搬移到别的地方。  
+### 做法
++ 检查函数在当前上下文里引用的所有元素（包含变量和函数），考虑是否需要将它们一并搬移
++ 检查待搬移函数是否具有多态性
++ 将函数复制一份到目标上下文中。调整函数，使它能适应新家
++ 执行静态检查
++ 设法从源上下文中正确引用目标函数
++ 修改源函数，使之成为一个纯委托函数
++ 测试
++ 考虑对源函数使用内联函数
+### 范例：搬移内嵌函数到顶层
+> 搬移前
+```js
+function trackSummary(points) {
+  const totalTime = calculateTime();
+  const totalDistance = calculateDistance();
+  const pace = totalTime / 60 / totalDistance;
+  return {
+    time: totalTime,
+    distance: totalDistance,
+    pace: pace
+  }
+
+  function calculateDistance() {
+    let result = 0;
+    for (let i = 0; i < points.length; i++) {
+      result += distance(points[i - 1], points[i]);
+    }
+    return result;
+  }
+  function distance(p1, p2) { ... }
+  function radians(degrees) { ... }
+  function calculateTime() { ... }
+}
+```
+> 搬移后
+```js
+function trackSummary(points) {
+  const totalTime = calculateTime();
+  const pace = totalTime / 60 / totalDistance(points);
+  return {
+    time: totalTime,
+    distance: totalDistance(points),
+    pace: pace
+  }
+  function calculateTime() { ... }
+}
+// 函数复制一份到顶层作用域
+function totalDistance(points) {
+  let result = 0;
+  for (let i = 0; i < points.length; i++) {
+    result += distance(points[i - 1], points[i]);
+  }
+  return result;
+}
+function distance(p1, p2) {
+  const EARTH_RADIUS = 3959; // in miles
+  const dLat = radians(p2.lat) - radians(p1.lat);
+  const dLon = radians(p2.lon) - radians(p1.lon);
+  const a = Math.pow(Math.sin(dLat / 2), 2)
+    + Math.cos(radians(p2.lat))
+    + Math.cos(radians(p1.lat))
+    + Math.pow(Math.sin((dLon) / 2), 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return EARTH_RADIUS * c;
+}
+function radians(degrees) {
+  return degrees * Math.PI / 180;
+}
+```
+### 范例：在类之间搬移函数
+> 搬移前
+```js
+class Account {
+  get bankCharge() {
+    let result = 4.5;
+    if (this._daysOverdrawn > 0)
+      result += this.type.overdraftCharge(this.daysOverdrawn);
+    return result;
+  }
+  get overdraftCharge() {
+    if (this.type.isPremium) {
+      const baseCharge = 10;
+      if (this.daysOverdrawn <= 7)
+        return baseCharge;
+      else
+        return baseCharge + (this.daysOverdrawn - 7) * 0.85;
+    } else {
+      return this.daysOverdrawn * 1.75;
+    }
+  }
+}
+```
+> 搬移后
+```js
+class Account {
+  get bankCharge() {
+    let result = 4.5;
+    if (this._daysOverdrawn > 0)
+      result += this.overdraftCharge;
+    return result;
+  }
+  get overdraftCharge() {
+    return this.type.overdraftCharge(this);
+  }
+}
+
+class AccountType {
+  overdraftCharge(account) {
+    if (this.isPremium) {
+      const baseCharge = 10;
+      if (account.daysOverdrawn <= 7)
+        return baseCharge;
+      else
+        return baseCharge + (account.daysOverdrawn - 7) * 0.85;
+    } else {
+      return account.daysOverdrawn * 1.75;
+    }
+  }
+}
+```
+
