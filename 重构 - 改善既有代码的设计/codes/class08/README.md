@@ -370,3 +370,10 @@ function emitPhotoData(outStream, photo) {
   outStream.write(`<p>date: ${photo.date.toDateString()}</p>\n`);
 }
 ```
+
+## 8.5 以函数调用取代内联代码（Replace Inline Code with Function Call）
+### 动机
+善用函数可以帮助我们将相关的行为打包起来，这对于提升代码的表达力大有裨益。
+### 做法
++ 将内联代码替代为一个既有函数的调用
++ 测试
