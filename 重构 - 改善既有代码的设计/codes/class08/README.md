@@ -244,3 +244,69 @@ class AccountType {
   }
 }
 ```
+
+## 8.3 搬移语句到函数（Move Statements into Function）
+反向重构：搬移语句到调用者
+### 动机
+要维护代码库的健康发展，需要遵守几条黄金守则，其中最重要的一条当属“消除重复”。 
+### 做法
++ 如果重复的代码段离调用目标函数的地方还有些距离，则先用移动语句将这些语句挪动到紧邻目标函数的位置
++ 如果目标函数仅被唯一一个源函数调用，那么只需将源函数中的重复代码段剪切并粘贴到目标函数中即可，然后运行测试。本做法的后续步骤至此可以忽略
++ 如果函数不止第一个调用点，那么先选择其中一个调用点应用提炼函数，将待搬移的语句与目标函数一起提炼成新函数。给新函数取个临时的名字，只要易于搜索即可
++ 调整函数的其他调用点，令他们调用新提炼的函数。每次调整之后运行测试
++ 完成所有引用点的替换后，应用内联函数将目标函数内联到新函数里，并移除原目标函数
++ 对新函数应用函数改名，将其改名为原目标函数的名字
+### 范例
+> 搬移前
+```js
+function renderPerson(outStream, person) {
+  const result = [];
+  result.push(`<p>${person.name}</p>`);
+  result.push(renderPhoto(person.photo));
+  result.push(`<p>title: ${person.photo.title}</p>`);
+  result.push(emitPhotoData(person.photo));
+  return result.join('\n');
+}
+
+function photoDiv(p) {
+  return [
+    "<div>",
+    `<p>title: ${p.title}</p>`,
+    emitPhotoData(p),
+    "</div>"
+  ].join('\n');
+}
+
+function emitPhotoData(aPhoto) {
+  const result = [];
+  result.push(`<p>location: ${aPhoto.location}</p>`);
+  result.push(`<p>date: ${aPhoto.date.toDateString}</p>`);
+  return result.join('\n');
+}
+```
+> 搬移后
+```js
+function renderPerson(outStream, person) {
+  const result = [];
+  result.push(`<p>${person.name}</p>`);
+  result.push(renderPhoto(person.photo));
+  result.push(emitPhotoData(person.photo));
+  return result.join('\n');
+}
+
+function photoDiv(aPhoto) {
+  return [
+    "<div>",
+    emitPhotoData(aPhoto),
+    "</div>"
+  ].join('\n');
+}
+
+function emitPhotoData(aPhoto) {
+  return [
+    `<p>title: ${aPhoto.title}</p>`,
+    `<p>location: ${aPhoto.location}</p>`,
+    `<p>date: ${aPhoto.date.toDateString}</p>`
+  ].join('\n');
+}
+```
