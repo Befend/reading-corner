@@ -411,3 +411,44 @@ return result;
 ```
 ### 延伸阅读
 除了此法，还有一个十分相似的手法，名字叫做“交换语句位置”。该手法同样适用于移动相邻的代码片段，只不过它适用的是只有一条语句的片段。
+
+## 8.7 拆分循环（Split Loop）
+### 动机
+拆分循环还能让每个循环更容易适用。  
+即使处理的列表数据更多一些，循环本身也很少成为性能瓶颈，更何况拆分出循环来通常还使一些更强大的优化手段变得可能。  
+### 做法
++ 复制一遍循环代码
++ 识别并移除循环中的重复代码，使每个循环只做一件事
++ 测试  
+完成循环拆分后，考虑对得到的每个循环应用提炼函数
+### 范例
+> 拆分前
+```js
+let youngest = people[0] ? people[0].age : Infinity;
+let totalSalary = 0;
+for (const p of people) {
+  if (p.age < youngest) youngest = p.age;
+  totalSalary += p.salary;
+}
+return `youngestAge: ${youngest}, totalSalary: ${totalSalary}`;
+```
+
+> 拆分后
+```js
+let totalSalary = 0;
+for (const p of people) {
+  totalSalary += p.salary;
+}
+let youngest = people[0] ? people[0].age : Infinity;
+for (const p of people) {
+  if (p.age < youngest) youngest = p.age;
+}
+return `youngestAge: ${youngestAge()}, totalSalary: ${totalSalary()}`;
+
+function totalSalary() {
+  return people.reduce((total, p) => total + p.salary, 0);
+}
+function youngestAge() {
+  return Math.min(...people.map(p => p.age));
+}
+```
