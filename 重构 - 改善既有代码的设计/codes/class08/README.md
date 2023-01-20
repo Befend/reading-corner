@@ -452,3 +452,46 @@ function youngestAge() {
   return Math.min(...people.map(p => p.age));
 }
 ```
+## 8.8 以管道取代循环（Replace Loop with Pipeline）
+### 动机
+如今越来越多的编程语言都提供了更好的语言结构来处理迭代过程，这种结构就叫作集合管道（Collection pipeline）。  
+一些逻辑如果采用集合管道来编写，代码的可读性会更强 —— 我们只消从头到尾阅读一遍代码，就能弄清对象在管道中间的变换过程。  
+### 做法
++ 创建一个新变量，用以存放参与循环过程的集合
++ 从循环顶部开始，将循环里的每一块行为依次搬移出来，在上一步创建的集合变量上用一种管道运算替代之。每次修改后运行测试
++ 搬移完循环里的全部行为后，将循环整个删除
+### 范例
+> 取代前
+```js
+function acquireData(input) {
+  const lines = input.split("\n");
+  let firstLine = true;
+  const result = [];
+  for (const line of lines) {
+    if (firstLine) {
+      firstLine = false;
+      continue;
+    }
+    if (line.trim() === "") continue;
+    const record = line.split(",");
+    if (record[1].trim() === "India") {
+      result.push({city: record[0].trim(), phone: record[2].trim()})
+    }
+  }
+  return result;
+}
+```
+> 取代后
+```js
+function acquireData(input) {
+  const lines = input.split("\n");
+  const result = lines
+    .slice(1)
+    .filter(line => line.trim() !== "")
+    .map(line => line.split(","))
+    .filter(record => record[1].trim() === "India")
+    .map(record => ({city: record[0].trim(), phone: record[2].trim()}));
+  return result;
+}
+```
+
