@@ -377,3 +377,37 @@ function emitPhotoData(outStream, photo) {
 ### 做法
 + 将内联代码替代为一个既有函数的调用
 + 测试
+
+## 8.6 移动语句（Slide Statements）
+曾用名：合并重复的代码片段（Consolidate Duplicate Conditional Fragments）
+### 动机
+让存在关联的东西一起出现，可以使代码更容易理解。 
+### 做法
++ 确定待移动的代码片段应该被搬往何处。
++ 剪切源代码片段，粘贴到上一步选定的位置上
++ 测试
+### 范例：包含条件逻辑的移动
+```js
+let result;
+if (availableResources.length === 0) {
+  result = createResource();
+  allocatedResources.push(result);
+} else {
+  result = allocatedResources.pop();
+  allocatedResources.push(result);
+}
+return result;
+```
+
+```js
+let result;
+if (availableResources.length === 0) {
+  result = createResource();
+} else {
+  result = allocatedResources.pop();
+}
+allocatedResources.push(result);
+return result;
+```
+### 延伸阅读
+除了此法，还有一个十分相似的手法，名字叫做“交换语句位置”。该手法同样适用于移动相邻的代码片段，只不过它适用的是只有一条语句的片段。
