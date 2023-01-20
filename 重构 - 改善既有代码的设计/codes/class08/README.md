@@ -134,3 +134,113 @@ class AccountType {
 }
 ```
 
+## 8.2 搬移字段（Move Field）
+### 动机
+编程活动中你需要编写许多代码，为系统实现特定的行为，但往往数据结构才是一个健壮程序的根基。一个适应于问题域的良好数据结构，可以让行为代码变得简单明了，而一个糟糕的数据结构则将招致许多无用代码。  
+### 做法
++ 确保源字段已经得到了良好封装
++ 测试
++ 在目标对象上创建一个字段（及对应的访问函数）
++ 执行静态检查
++ 确保源对象里能够正常引用目标对象
++ 调整源对象的访问函数，令其使用目标对象的字段
++ 测试
++ 移除源对象上的字段
++ 测试
+### 范例
+> 搬移前
+```js
+class Customer {
+  constructor(name, discountRate) {
+    this._name = name;
+    this._discountRate = discountRate;
+    this._contract = new CustomerContract(dateToday());
+  }
+  get discountRate() {
+    return this._discountRate;
+  }
+  becomePreferred() {
+    this._discountRate += 0.03;
+    // other nice things
+  }
+  applyDiscount(amount) {
+    return amount.subtract(amount.multiply(this._discountRate));
+  }
+}
+
+class CustomerContract {
+  this._startDate = startDate;
+}
+```
+> 搬移后
+```js
+class Customer {
+  constructor(name, discountRate) {
+    this._name = name;
+    this._setDiscountRate(discountRate);
+    this._contract = new CustomerContract(dateToday());
+  }
+  get discountRate() {
+    return this._contract._discountRate;
+  }
+  _setDiscountRate(aNumber) {
+    this._contract._discountRate = aNumber;
+  }
+  becomePreferred() {
+    this._setDiscountRate(this._discountRate + 0.03);
+    // other nice things
+  }
+  applyDiscount(amount) {
+    return amount.subtract(amount.multiply(this.discountRate));
+  }
+}
+
+class CustomerContract {
+  this._startDate = startDate;
+  this._discountRate = discountRate;
+  get discountRate() {
+    return this._discountRate;
+  }
+  set discountRate(arg) {
+    this._discountRate = arg;
+  }
+}
+```
+### 搬移裸记录
+如果我们要搬移的字段是裸记录，并且被许多函数直接访问，那么这项重构仍然很有意义，只不过情况会复杂不少。  
+### 范例：搬移字段到共享对象
+> 搬移前
+```js
+class Account {
+  this._number = number;
+  this._type = type;
+  this._interestRate = interestRate;
+  get interestRate() {
+    return this._interestRate;
+  }
+}
+
+class AccountType {
+  constructor(nameString) {
+    this._name = nameString;
+  }
+}
+```
+> 搬移后
+```js
+class Account {
+  this._number = number;
+  this._type = type;
+  assert(interestRate === this._type.interestRate);
+  this._interestRate = interestRate;
+  get interestRate() {
+    return this._type._interestRate;
+  }
+}
+
+class AccountType {
+  constructor(nameString) {
+    this._name = nameString;
+  }
+}
+```
