@@ -310,3 +310,63 @@ function emitPhotoData(aPhoto) {
   ].join('\n');
 }
 ```
+
+## 8.4 搬移语句到调用者（Move Statements to Callers）
+反向重构：搬移语句到函数
+### 动机
+作为程序员，我们的职责就是设计出结构一致、抽象合宜的程序，而程序抽象能力的源泉正是来自函数。随着系统能力发生演进，原先设定的抽象边界总会悄无声息地发生偏移。对于函数来说，这样的边界偏移意味着曾经视为一个整体、一个单元的行为，如今可能已经分化出两个甚至多个不同的关注点。  
+函数边界发生偏移的一个征兆是，以往在多个地方共用的行为，如今需要在某些调用点面前表现出不同的行为。  
+这种重构手法比较适合处理边界仅有些许偏移的场景，但有时调用点和调用者之间的边界已经相去甚远。最好的方法是先用内联函数合并双方的内容，调整语句的顺序，再提炼出新的函数来，以形成更合适的边界。
+### 做法
++ 最简单的情况下，原函数非常简单，其调用者也只有寥寥一两个，此时只需把要搬移的代码从函数里剪切出来并粘贴回调用端去即可，必要的时候做些调整。运行测试，如果测试通过，那就大功告成，本手法可以到此为止。
++ 若调用点不止一两个，则需要先用提炼函数将你不想搬移的代码提炼成一个新函数，函数名可以临时起一个，只要后续容易搜索即可
++ 对原函数应用内联函数
++ 对提炼出来的函数应用改变函数声明，令其与原函数使用同一个名字。如果有更好的名字，就用更好的那个  
+### 范例
+> 搬移前
+```js
+function renderPerson(outStream, person) {
+  outStream.write(`<p>${person.name}</p>`);
+  renderPhoto(outStream, person.photo);
+  emitPhotoData(outStream, person.photo);
+}
+
+function listRecentPhotos(outStream, photos) {
+  photos.filter(p => p.date > recentDateCutoff())
+    .forEach(p => {
+      outStream.write("<div>\n");
+      emitPhotoData(outStream, p);
+      outStream.write("</div>\n");
+    });
+}
+
+function emitPhotoData(outStream, photo) {
+  outStream.write(`<p>title: ${photo.title}</p>\n`);
+  outStream.write(`<p>date: ${photo.date.toDateString()}</p>\n`);
+  outStream.write(`<p>location: ${photo.location}</p>\n`);
+}
+```
+> 搬移后
+```js
+function renderPerson(outStream, person) {
+  outStream.write(`<p>${person.name}</p>`);
+  renderPhoto(outStream, person.photo);
+  emitPhotoData(outStream, photo);
+  outStream.write(`<p>location: ${photo.location}</p>\n`);
+}
+
+function listRecentPhotos(outStream, photos) {
+  photos.filter(p => p.date > recentDateCutoff())
+    .forEach(p => {
+      outStream.write("<div>\n");
+      emitPhotoData(outStream, photo);
+      outStream.write(`<p>location: ${photo.location}</p>\n`);
+      outStream.write("</div>\n");
+    });
+}
+
+function emitPhotoData(outStream, photo) {
+  outStream.write(`<p>title: ${photo.title}</p>\n`);
+  outStream.write(`<p>date: ${photo.date.toDateString()}</p>\n`);
+}
+```
